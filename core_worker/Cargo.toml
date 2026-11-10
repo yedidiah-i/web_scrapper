@@ -1,0 +1,32 @@
+[package]
+name = "core_worker"
+version = "0.2.0"
+edition = "2024"
+description = "High-concurrency asynchronous Rust fetching engine for the scraping pipeline"
+
+[dependencies]
+# Async multi-threaded runtime (Substep 2.1)
+tokio = { version = "1", features = ["full"] }
+# Non-blocking HTTP client with streaming bodies (Substep 2.1)
+reqwest = { version = "0.12", default-features = false, features = ["stream", "native-tls", "gzip", "brotli", "deflate", "charset", "http2"] }
+# Fast serialization / deserialization (Substep 2.1)
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+# HTTP surface so the TypeScript gateway can push work into the core queue
+axum = "0.8"
+tower-http = { version = "0.6", features = ["cors", "trace"] }
+# Observability
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
+# Utilities
+anyhow = "1"
+thiserror = "2"
+url = "2"
+rand = "0.9"
+futures-util = "0.3"
+uuid = { version = "1", features = ["v4"] }
+
+[profile.release]
+opt-level = 3
+lto = "thin"
+codegen-units = 1
