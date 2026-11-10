@@ -223,8 +223,8 @@ def main() -> None:
     db_path = Path(os.environ.get("PY_DB_PATH", str(DEFAULT_DB_PATH)))
     store = ResultStore(db_path)
 
-    ingest_host, ingest_port = os.environ.get("PY_INGEST_ADDR", "127.0.0.1:58081").rsplit(":", 1)
-    results_host, results_port = os.environ.get("PY_RESULTS_ADDR", "127.0.0.1:58082").rsplit(":", 1)
+    ingest_host, ingest_port = os.environ.get("PY_INGEST_ADDR", "127.0.0.1:59081").rsplit(":", 1)
+    results_host, results_port = os.environ.get("PY_RESULTS_ADDR", "127.0.0.1:59082").rsplit(":", 1)
 
     ingest_server = IngestServer((ingest_host, int(ingest_port)), store)
     results_server = ResultsServer((results_host, int(results_port)), store)
