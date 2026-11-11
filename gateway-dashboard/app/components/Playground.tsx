@@ -65,7 +65,7 @@ export default function Playground() {
   }
 
   return (
-    <section className="grid gap-5 lg:grid-cols-[minmax(300px,380px)_1fr]">
+    <section className="grid min-w-0 gap-5 lg:grid-cols-[minmax(300px,380px)_minmax(0,1fr)]">
       <div className="rounded-2xl border border-zinc-800 bg-zinc-900/60 p-6">
         <h2 className="text-lg font-semibold text-zinc-100">Playground</h2>
         <p className="mb-5 text-sm text-zinc-500">
@@ -127,8 +127,8 @@ export default function Playground() {
         ) : null}
       </div>
 
-      <div className="rounded-2xl border border-zinc-800 bg-zinc-900/60 p-6">
-        <div className="mb-4 flex items-center justify-between">
+      <div className="min-w-0 rounded-2xl border border-zinc-800 bg-zinc-900/60 p-6">
+        <div className="mb-4 flex items-center justify-between gap-3">
           <h2 className="text-lg font-semibold text-zinc-100">Response payload</h2>
           <span className="rounded-full bg-zinc-800 px-2.5 py-1 text-[11px] font-semibold text-zinc-400">
             application/json
