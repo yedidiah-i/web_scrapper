@@ -1,8 +1,30 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  color-scheme: light;
+  --background: #f5f4ef;
+  --foreground: #20231f;
+  --color-zinc-950: #f5f4ef;
+  --color-zinc-900: #ffffff;
+  --color-zinc-800: #e6e5de;
+  --color-zinc-700: #d3d4cb;
+  --color-zinc-600: #8d9187;
+  --color-zinc-500: #747a70;
+  --color-zinc-400: #62695f;
+  --color-zinc-300: #444b42;
+  --color-zinc-200: #30372f;
+  --color-zinc-100: #20271f;
+  --color-zinc-50: #191f18;
+  --color-emerald-950: #edf1e8;
+  --color-emerald-900: #e2e9da;
+  --color-emerald-800: #cbd8bf;
+  --color-emerald-700: #849879;
+  --color-emerald-600: #536c4a;
+  --color-emerald-500: #526c48;
+  --color-emerald-400: #607954;
+  --color-emerald-300: #607954;
+  --color-emerald-200: #526c48;
+  --color-emerald-100: #394d33;
 }
 
 @theme inline {
@@ -12,15 +34,29 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+* {
+  scrollbar-color: #c9cbbf transparent;
 }
 
 body {
-  background: var(--background);
+  background:
+    radial-gradient(ellipse at 50% -15%, rgba(214, 222, 202, 0.55), transparent 42rem),
+    var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+  letter-spacing: -0.01em;
+}
+
+::selection {
+  background: #dce6d2;
+  color: #293326;
+}
+
+button, a, input, textarea, select {
+  -webkit-tap-highlight-color: transparent;
+}
+
+:focus-visible {
+  outline: 2px solid #718868;
+  outline-offset: 3px;
 }

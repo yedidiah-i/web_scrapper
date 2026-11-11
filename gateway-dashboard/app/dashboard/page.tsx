@@ -197,8 +197,26 @@ export default function DashboardPage() {
         </div>
       </header>
 
-      <main className="mx-auto max-w-7xl px-6 py-8">
-        <nav className="mb-6 flex gap-1 border-b border-zinc-800">
+      <main className="mx-auto w-full max-w-7xl px-5 py-8 sm:px-8 lg:py-10">
+        <section className="mb-8 flex flex-wrap items-end justify-between gap-5">
+          <div>
+            <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-emerald-700">
+              Your workspace
+            </p>
+            <h1 className="text-3xl font-semibold tracking-[-0.04em] text-zinc-50 sm:text-4xl">
+              Good to see you, {user.name.split(" ")[0]}.
+            </h1>
+            <p className="mt-2 max-w-xl text-sm leading-6 text-zinc-500">
+              Turn any page into structured data. Your extraction tools and account activity, all in one place.
+            </p>
+          </div>
+          <div className="flex items-center gap-2 rounded-full border border-emerald-800 bg-emerald-950 px-3.5 py-2 text-xs font-medium text-emerald-100">
+            <span aria-hidden="true" className="size-2 rounded-full bg-emerald-500" />
+            Extraction service ready
+          </div>
+        </section>
+
+        <nav aria-label="Workspace sections" className="mb-7 flex gap-1 overflow-x-auto border-b border-zinc-800">
           {tabs.map((item) => (
             <button
               key={item.id}
