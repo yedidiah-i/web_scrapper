@@ -82,19 +82,19 @@ export default async function LandingPage() {
     <div className="min-h-screen bg-zinc-950 text-zinc-100">
       <header className="sticky top-0 z-20 border-b border-zinc-800/80 bg-zinc-950/90 backdrop-blur">
         <div className="mx-auto flex max-w-6xl items-center gap-6 px-6 py-4">
-          <Link href="/" className="flex items-center gap-3">
+          <Link href="/" className="flex shrink-0 items-center gap-3">
             <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-500 font-bold text-zinc-950">
               S
             </div>
             <div>
               <p className="text-sm font-semibold leading-tight">Scrapeworks</p>
-              <p className="text-[11px] leading-tight text-zinc-500">
+              <p className="hidden text-[11px] leading-tight text-zinc-500 sm:block">
                 High-concurrency scraping API
               </p>
             </div>
           </Link>
 
-          <nav className="ml-auto flex items-center gap-3">
+          <nav aria-label="Main navigation" className="ml-auto flex shrink-0 items-center gap-1 sm:gap-3">
             <Link
               href="/login"
               className="rounded-lg px-3 py-2 text-sm font-medium text-zinc-300 transition hover:text-zinc-100"
@@ -113,7 +113,7 @@ export default async function LandingPage() {
 
       <main>
         {/* Hero */}
-        <section className="mx-auto max-w-6xl px-6 pt-20 pb-16 text-center">
+        <section className="mx-auto max-w-6xl px-6 pb-16 pt-24 text-center sm:pt-28">
           <p className="mx-auto inline-flex items-center gap-2 rounded-full border border-zinc-800 bg-zinc-900/60 px-3.5 py-1.5 text-xs font-medium text-zinc-400">
             <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
             Powered by a Rust core and a Python data pipeline
