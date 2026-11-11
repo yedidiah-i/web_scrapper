@@ -4,10 +4,13 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
+import ScrappyBrand from "@/app/components/ScrappyBrand";
+
 const PASSWORD_RULES = [
   "At least 10 characters",
   "Contains a letter",
   "Contains a number",
+  "Different from your email",
 ];
 
 /** Account creation page. */
@@ -37,6 +40,11 @@ export default function SignupPage() {
         return;
       }
 
+      if (body.confirmation_required) {
+        router.replace("/signup/check-email");
+        return;
+      }
+
       router.replace("/dashboard");
       router.refresh();
     } catch {
@@ -49,20 +57,14 @@ export default function SignupPage() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-zinc-950 px-6 py-12">
       <div className="w-full max-w-sm">
-        <Link href="/" className="mb-8 flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-500 font-bold text-zinc-950">
-            S
-          </div>
-          <div>
-            <p className="font-semibold text-zinc-100">Scrapeworks</p>
-            <p className="text-xs text-zinc-500">Extraction control panel</p>
-          </div>
+        <Link href="/" className="mb-8 inline-flex rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500">
+          <ScrappyBrand subtitle="Extraction workspace" size={42} />
         </Link>
 
         <div className="mb-6">
           <h1 className="text-2xl font-semibold text-zinc-100">Create your account</h1>
           <p className="mt-1 text-sm text-zinc-500">
-            Start on the Hobby plan with 5,000 credits a month.
+            Start on the Hobby plan with 5,000 credits a month. Confirm your email to finish signing in.
           </p>
         </div>
 

@@ -1,28 +1,24 @@
-import { NextResponse, type NextRequest } from "next/server";
+import { type NextRequest, NextResponse } from "next/server";
 
 import { SESSION_COOKIE } from "@/lib/config";
+import { updateSession } from "@/lib/supabase/proxy";
 
-/**
- * Route protection.
- *
- * The dashboard, account and admin pages need a session. This performs an
- * optimistic check on the cookie: if the session cookie is missing the
- * visitor is redirected to the login page before any page renders. The
- * authoritative check still happens on the server in every route handler.
- */
-export function proxy(request: NextRequest) {
-  const { pathname, search } = request.nextUrl;
+export async function proxy(request: NextRequest) {
+  const response = await updateSession(request);
+  const url = request.nextUrl.clone();
 
-  const hasSessionCookie = Boolean(request.cookies.get(SESSION_COOKIE)?.value);
-
-  if (!hasSessionCookie) {
-    const login = new URL("/login", request.url);
-    // Preserve where the visitor was heading so login can send them back.
-    if (pathname !== "/") login.searchParams.set("next", `${pathname}${search}`);
-    return NextResponse.redirect(login);
+  if (!request.cookies.get(SESSION_COOKIE)?.value) {
+    url.pathname = "/login";
+    url.searchParams.set("next", `${request.nextUrl.pathname}${request.nextUrl.search}`);
+    const redirect = NextResponse.redirect(url);
+    for (const cookie of response.cookies.getAll()) {
+      const { name, value, ...options } = cookie;
+      redirect.cookies.set(name, value, options);
+    }
+    return redirect;
   }
 
-  return NextResponse.next();
+  return response;
 }
 
 export const config = {

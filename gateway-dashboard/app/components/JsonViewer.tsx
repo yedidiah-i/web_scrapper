@@ -12,10 +12,10 @@ const TOKEN =
   /("(?:\\.|[^"\\])*"\s*:)|("(?:\\.|[^"\\])*")|(-?\b\d+(?:\.\d+)?\b)|\b(true|false|null)\b/g;
 
 function tokenClass(match: string): string {
-  if (match.endsWith(":")) return "text-sky-300";
-  if (match.startsWith('"')) return "text-emerald-300";
-  if (match === "true" || match === "false" || match === "null") return "text-violet-300";
-  return "text-amber-300";
+  if (match.endsWith(":")) return "text-sky-700";
+  if (match.startsWith('"')) return "text-emerald-700";
+  if (match === "true" || match === "false" || match === "null") return "text-violet-700";
+  return "text-amber-700";
 }
 
 /**
@@ -77,7 +77,7 @@ export default function JsonViewer({ value, emptyLabel, maxHeight = 520 }: Props
 
           return (
             <div key={index} className="whitespace-pre">
-              <span className="select-none pr-4 text-zinc-700">{String(index + 1).padStart(3, " ")}</span>
+              <span className="select-none pr-4 text-zinc-500">{String(index + 1).padStart(3, " ")}</span>
               {parts.length > 0 ? parts : " "}
             </div>
           );

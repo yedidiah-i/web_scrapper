@@ -80,8 +80,8 @@ export default function UsageChart({ series, height = 240 }: Props) {
       >
         <defs>
           <linearGradient id="successFill" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#34d399" stopOpacity="0.28" />
-            <stop offset="100%" stopColor="#34d399" stopOpacity="0" />
+            <stop offset="0%" stopColor="#526c48" stopOpacity="0.22" />
+            <stop offset="100%" stopColor="#526c48" stopOpacity="0" />
           </linearGradient>
         </defs>
 
@@ -94,10 +94,10 @@ export default function UsageChart({ series, height = 240 }: Props) {
                 x2={width - pad}
                 y1={y}
                 y2={y}
-                stroke="#27272a"
+                stroke="#d8d9d2"
                 strokeDasharray="3 4"
               />
-              <text x={pad - 10} y={y + 4} textAnchor="end" fontSize="11" fill="#71717a">
+              <text x={pad - 10} y={y + 4} textAnchor="end" fontSize="11" fill="#747a70">
                 {Math.round(max * ratio)}
               </text>
             </g>
@@ -110,7 +110,7 @@ export default function UsageChart({ series, height = 240 }: Props) {
             <path
               d={pathFor(failedValues, max, width, height, pad)}
               fill="none"
-              stroke="#fb7185"
+              stroke="#b44c5a"
               strokeWidth={2}
               strokeLinejoin="round"
               strokeLinecap="round"
@@ -118,14 +118,14 @@ export default function UsageChart({ series, height = 240 }: Props) {
             <path
               d={pathFor(successValues, max, width, height, pad)}
               fill="none"
-              stroke="#34d399"
+              stroke="#526c48"
               strokeWidth={2.5}
               strokeLinejoin="round"
               strokeLinecap="round"
             />
           </>
         ) : (
-          <text x={width / 2} y={height / 2} textAnchor="middle" fontSize="13" fill="#52525b">
+          <text x={width / 2} y={height / 2} textAnchor="middle" fontSize="13" fill="#747a70">
             No requests recorded in this window yet.
           </text>
         )}

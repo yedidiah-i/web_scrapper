@@ -1,7 +1,7 @@
 import { listUserSessions, readSessionCookie, revokeOtherSessions } from "@/lib/auth";
 import { requireUser, unauthorized } from "@/lib/session";
+import { createClient } from "@/lib/supabase/server";
 
-/** List the sessions of the signed-in account. */
 export async function GET(request: Request) {
   const user = requireUser(request);
   if (!user) return unauthorized();
@@ -12,7 +12,6 @@ export async function GET(request: Request) {
   );
 }
 
-/** Revoke every session of the signed-in account except the current one. */
 export async function DELETE(request: Request) {
   const user = requireUser(request);
   if (!user) return unauthorized();
@@ -21,6 +20,8 @@ export async function DELETE(request: Request) {
     user.id,
     readSessionCookie(request.headers.get("cookie")),
   );
+  const supabase = await createClient();
+  await supabase.auth.signOut({ scope: "others" });
 
   return Response.json({ revoked });
 }

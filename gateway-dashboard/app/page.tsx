@@ -1,4 +1,6 @@
 import Link from "next/link";
+
+import ScrappyBrand from "@/app/components/ScrappyBrand";
 import { cacheLife } from "next/cache";
 
 /**
@@ -60,7 +62,7 @@ const PLANS = [
   },
 ];
 
-const CODE_SAMPLE = `curl -X POST https://api.scrapeworks.com/api/v1/extract \\
+const CODE_SAMPLE = `curl -X POST https://your-deployed-domain.com/api/v1/extract \\
   -H "Authorization: Bearer sk_live_..." \\
   -H "Content-Type: application/json" \\
   -d '{
@@ -82,16 +84,8 @@ export default async function LandingPage() {
     <div className="min-h-screen bg-zinc-950 text-zinc-100">
       <header className="sticky top-0 z-20 border-b border-zinc-800/80 bg-zinc-950/90 backdrop-blur">
         <div className="mx-auto flex max-w-6xl items-center gap-6 px-6 py-4">
-          <Link href="/" className="flex shrink-0 items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-500 font-bold text-zinc-950">
-              S
-            </div>
-            <div>
-              <p className="text-sm font-semibold leading-tight">Scrapeworks</p>
-              <p className="hidden text-[11px] leading-tight text-zinc-500 sm:block">
-                High-concurrency scraping API
-              </p>
-            </div>
+          <Link href="/" className="flex shrink-0 rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500">
+            <ScrappyBrand subtitle="Web extraction workspace" size={38} />
           </Link>
 
           <nav aria-label="Main navigation" className="ml-auto flex shrink-0 items-center gap-1 sm:gap-3">
@@ -285,7 +279,7 @@ export default async function LandingPage() {
 
       <footer className="border-t border-zinc-800/80">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-6 py-8 text-xs text-zinc-500">
-          <p>© {year} Scrapeworks. Extraction infrastructure.</p>
+          <p>© {year} Scrappy. Web extraction workspace.</p>
           <div className="flex gap-5">
             <Link href="/login" className="hover:text-zinc-300">
               Sign in
