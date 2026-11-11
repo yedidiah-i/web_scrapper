@@ -657,6 +657,22 @@ def extract_packet(packet: dict[str, Any]) -> dict[str, Any]:
     ok = bool(packet.get("ok")) and bool(packet.get("html_content"))
     status_code = packet.get("status_code")
 
+    # Crawl provenance travels with every page so the history view can show
+    # where a page came from, which engine fetched it and whether an
+    # anti-bot challenge was met.
+    crawl_meta: dict[str, Any] = {
+        "status_code": status_code,
+        "attempts": packet.get("attempts", 1),
+        "elapsed_ms": packet.get("elapsed_ms", 0),
+        "depth": packet.get("depth", 0),
+        "source_url": packet.get("source_url") or "",
+        "engine": "browser" if packet.get("browser_rendered") else "http",
+        "browser_rendered": bool(packet.get("browser_rendered", False)),
+        "proxy_used": packet.get("proxy_used") or "",
+        "challenge": packet.get("challenge") or "",
+        "crawl_depth_remaining": packet.get("crawl_depth_remaining", 0),
+    }
+
     if not ok:
         payload = {
             "job_id": job_id,
@@ -669,9 +685,7 @@ def extract_packet(packet: dict[str, Any]) -> dict[str, Any]:
             "data": [],
             "meta": {
                 "error": packet.get("error") or "fetch failed",
-                "status_code": status_code,
-                "attempts": packet.get("attempts", 0),
-                "elapsed_ms": packet.get("elapsed_ms", 0),
+                **crawl_meta,
             },
         }
         return validate_payload(payload)
@@ -682,9 +696,5 @@ def extract_packet(packet: dict[str, Any]) -> dict[str, Any]:
         target=packet.get("target", "auto"),
         selectors=packet.get("selectors") or [],
         job_id=job_id,
-        extra_meta={
-            "status_code": status_code,
-            "attempts": packet.get("attempts", 1),
-            "elapsed_ms": packet.get("elapsed_ms", 0),
-        },
+        extra_meta=crawl_meta,
     )

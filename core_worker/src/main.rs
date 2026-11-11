@@ -7,10 +7,13 @@
 
 mod config;
 mod fetcher;
+mod fingerprint;
 mod ipc;
 mod models;
+mod proxy;
 mod server;
 mod stats;
+mod throttle;
 
 use std::sync::Arc;
 
@@ -43,6 +46,20 @@ async fn main() -> Result<()> {
     let stats = Arc::new(Stats::new(config.stats_window_secs));
     let jobs = Arc::new(JobRegistry::new());
     let ipc = IpcSink::spawn(&config);
+
+    if config.tls_impersonate && !fingerprint::available() {
+        tracing::warn!(
+            "CORE_TLS_IMPERSONATE is on but this binary was built without the \
+             'tls-impersonate' feature - using the plain HTTP fingerprint"
+        );
+    }
+    if config.browser_fallback {
+        tracing::info!(
+            endpoint = %config.render_endpoint,
+            "browser escalation enabled"
+        );
+    }
+
     let engine = Engine::spawn(config.clone(), stats.clone(), jobs.clone(), ipc.clone());
 
     let listener = TcpListener::bind(config.bind_addr).await?;

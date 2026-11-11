@@ -45,10 +45,24 @@ pub struct JobRequest {
     /// Optional CSS selector overrides applied by the Python transformer.
     #[serde(default)]
     pub selectors: Vec<String>,
+    /// How many link-following hops to perform from the seed URLs.
+    /// 0 = no recursion (default), 1 = follow links found on seed pages, etc.
+    #[serde(default)]
+    pub crawl_depth: usize,
+    /// Maximum total pages (seed + discovered) to crawl in this job tree.
+    #[serde(default = "default_max_pages")]
+    pub crawl_max_pages: usize,
+    /// Label the caller can attach to group related crawls in history.
+    #[serde(default)]
+    pub label: Option<String>,
 }
 
 fn default_target() -> Target {
     Target::Auto
+}
+
+fn default_max_pages() -> usize {
+    50
 }
 
 /// Response returned once a job is accepted into the worker queue.
@@ -60,6 +74,9 @@ pub struct JobAccepted {
     pub rejected_urls: usize,
     pub target: String,
     pub queued_at_ms: u64,
+    pub crawl_depth: usize,
+    pub crawl_max_pages: usize,
+    pub label: Option<String>,
 }
 
 /// Raw HTML packet streamed to the Python ingestion socket.
@@ -96,6 +113,21 @@ pub struct RawPacket {
     pub target: String,
     /// CSS selector overrides requested for this URL.
     pub selectors: Vec<String>,
+    /// How many more hops the crawler is allowed from this page (0 = leaf).
+    pub crawl_depth_remaining: usize,
+    /// Whether this response required a headless-browser render.
+    pub browser_rendered: bool,
+    /// Proxy used for this fetch, or empty when connecting directly.
+    pub proxy_used: String,
+    /// Crawl depth at which this page was found (0 = seed URL).
+    pub depth: usize,
+    /// URL of the page that linked to this one (empty for seeds).
+    pub source_url: Option<String>,
+    /// Name of the anti-bot challenge detected on this page, if any.
+    ///
+    /// The challenge is reported, never solved: the worker only escalates to
+    /// the browser tier, which may clear a passive challenge on its own.
+    pub challenge: Option<String>,
 }
 
 /// Live status of a submitted job.
@@ -109,6 +141,10 @@ pub struct JobStatus {
     pub failed: usize,
     pub created_at_ms: u64,
     pub updated_at_ms: u64,
+    /// Crawl depth the job was accepted with.
+    pub crawl_depth: usize,
+    /// Page ceiling for this job tree.
+    pub max_pages: usize,
 }
 
 /// Internal per-job counters tracked by the engine.
@@ -121,4 +157,8 @@ pub struct JobState {
     pub failed: usize,
     pub created_at_ms: u64,
     pub updated_at_ms: u64,
+    /// Hard ceiling on pages (seed + discovered) for this job tree.
+    pub max_pages: usize,
+    /// Crawl depth the job was accepted with.
+    pub crawl_depth: usize,
 }

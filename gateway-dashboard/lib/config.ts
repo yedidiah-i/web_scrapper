@@ -21,7 +21,7 @@ export const config = {
   /** Session lifetime in milliseconds (7 days). */
   sessionTtlMs: Number(process.env.SESSION_TTL_MS ?? 7 * 24 * 60 * 60 * 1000),
   /** Maximum number of URLs accepted in one extraction request. */
-  maxUrlsPerRequest: Number(process.env.MAX_URLS_PER_REQUEST ?? 100),
+  maxUrlsPerRequest: Number(process.env.MAX_URLS_PER_REQUEST ?? 1000),
   /** How long the gateway waits for the engine + processor to finish a job. */
   jobTimeoutMs: Number(process.env.JOB_TIMEOUT_MS ?? 60_000),
   /** Poll interval while waiting for job results. */

@@ -102,7 +102,11 @@ impl Stats {
         };
 
         // Bucket the rolling window into whole minutes, oldest first.
-        let mut buckets: Vec<(u64, u64, u64)> = Vec::new();
+        //
+        // Each bucket keeps the success count, the failure count and the
+        // total latency, so the series can show how slow the targets got -
+        // that is the signal the adaptive throttle reacts to.
+        let mut buckets: Vec<(u64, u64, u64, u64)> = Vec::new();
         for event in events.iter() {
             let minute = event.at_ms / 60_000 * 60_000;
             match buckets.last_mut() {
@@ -112,17 +116,24 @@ impl Stats {
                     } else {
                         last.2 += 1;
                     }
+                    last.3 += event.latency_ms;
                 }
-                _ => buckets.push((minute, u64::from(event.ok), u64::from(!event.ok))),
+                _ => buckets.push((
+                    minute,
+                    u64::from(event.ok),
+                    u64::from(!event.ok),
+                    event.latency_ms,
+                )),
             }
         }
 
         let series = buckets
             .into_iter()
-            .map(|(ts, ok, err)| SeriesPoint {
+            .map(|(ts, ok, err, latency_ms)| SeriesPoint {
                 ts,
                 success: ok,
                 failed: err,
+                avg_latency_ms: if ok + err > 0 { latency_ms / (ok + err) } else { 0 },
             })
             .collect();
 
@@ -167,6 +178,8 @@ pub struct SeriesPoint {
     pub ts: u64,
     pub success: u64,
     pub failed: u64,
+    /// Average response latency inside the bucket.
+    pub avg_latency_ms: u64,
 }
 
 pub fn now_ms() -> u64 {

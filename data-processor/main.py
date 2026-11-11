@@ -29,8 +29,8 @@ SAMPLE_HTML = """
         <table>
             <thead><tr><th>Product</th><th>Price</th></tr></thead>
             <tbody>
-                <tr><td>Widget A</td><td>$19.99</td></tr>
-                <tr><td>Widget B</td><td>$24.50</td></tr>
+                <tr><td>Widget A</td><td class="price">$19.99</td></tr>
+                <tr><td>Widget B</td><td class="price">$24.50</td></tr>
             </tbody>
         </table>
         <img src="/img/widget.png" alt="Widget" width="300" height="200">
@@ -44,11 +44,11 @@ SAMPLE_HTML = """
 def self_test() -> int:
     """Smoke test the extraction pipeline against a static document."""
     checks = [
-        ("text", "text", 3),
+        ("text", "text", 9),
         ("tables", "tables", 2),
         ("images", "images", 1),
         ("links", "links", 1),
-        ("metadata", "metadata", 4),
+        ("metadata", "metadata", 5),
         ("prices", "prices", 2),
     ]
 
