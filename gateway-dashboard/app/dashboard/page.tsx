@@ -8,6 +8,7 @@ import JsonViewer from "../components/JsonViewer";
 import KeyManager from "../components/KeyManager";
 import Playground from "../components/Playground";
 import UsageChart from "../components/UsageChart";
+import HistoryViewer from "../components/HistoryViewer";
 
 type Session = {
   user: {
@@ -48,7 +49,7 @@ type Stats = {
   };
 };
 
-type Tab = "playground" | "keys" | "usage";
+type Tab = "playground" | "history" | "keys" | "usage";
 
 function formatBytes(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
@@ -135,6 +136,7 @@ export default function DashboardPage() {
 
   const tabs: Array<{ id: Tab; label: string }> = [
     { id: "playground", label: "Playground" },
+    { id: "history", label: "Crawl History" },
     { id: "keys", label: "API keys" },
     { id: "usage", label: "Usage" },
   ];
@@ -233,6 +235,7 @@ export default function DashboardPage() {
         </nav>
 
         {tab === "playground" ? <Playground /> : null}
+        {tab === "history" ? <HistoryViewer /> : null}
 
         {tab === "keys" ? (
           <div className="space-y-5">

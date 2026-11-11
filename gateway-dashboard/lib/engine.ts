@@ -43,6 +43,18 @@ export type EngineJob = {
   failed: number;
 };
 
+export type JobSubmission = {
+  urls: string[];
+  target: string;
+  selectors: string[];
+  /** How many link-following hops to perform from the seed URLs (default 0). */
+  crawl_depth?: number;
+  /** Maximum total pages (seed + discovered) to crawl (default 50). */
+  crawl_max_pages?: number;
+  /** Optional label for history grouping. */
+  label?: string;
+};
+
 export class EngineError extends Error {
   status: number;
   details?: unknown;
@@ -60,13 +72,21 @@ export async function submitJob(
   urls: string[],
   target: string,
   selectors: string[],
-): Promise<{ jobId: string; accepted: number; rejected: number; target: string }> {
+  options?: { crawl_depth?: number; crawl_max_pages?: number; label?: string },
+): Promise<{ jobId: string; accepted: number; rejected: number; target: string; crawl_depth: number; label?: string }> {
   let response: Response;
   try {
     response = await fetch(`${config.engineUrl}/jobs`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ urls, target, selectors }),
+      body: JSON.stringify({
+        urls,
+        target,
+        selectors,
+        crawl_depth: options?.crawl_depth ?? 0,
+        crawl_max_pages: options?.crawl_max_pages ?? 50,
+        label: options?.label,
+      }),
       signal: AbortSignal.timeout(15_000),
     });
   } catch (error) {
@@ -86,6 +106,8 @@ export async function submitJob(
     accepted_urls: number;
     rejected_urls: number;
     target: string;
+    crawl_depth: number;
+    label?: string;
   };
 
   return {
@@ -93,6 +115,8 @@ export async function submitJob(
     accepted: body.accepted_urls,
     rejected: body.rejected_urls,
     target: body.target,
+    crawl_depth: body.crawl_depth ?? 0,
+    label: body.label,
   };
 }
 

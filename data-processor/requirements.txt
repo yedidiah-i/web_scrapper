@@ -2,3 +2,7 @@
 polars>=1.0,<2.0
 selectolax>=0.3.21
 beautifulsoup4>=4.12
+
+# Multi-format export (Step 3 v0.3)
+pyarrow>=15.0        # Parquet read/write backend for polars
+openpyxl>=3.1        # Excel (.xlsx) export
