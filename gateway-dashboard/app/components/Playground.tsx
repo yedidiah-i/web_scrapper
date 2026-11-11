@@ -71,7 +71,7 @@ export default function Playground() {
   const exportUrls = (result as { export_urls?: Record<string, string> } | null)?.export_urls;
 
   return (
-    <section className="grid gap-5 lg:grid-cols-[minmax(300px,380px)_1fr]">
+    <section className="grid min-w-0 gap-5 lg:grid-cols-[minmax(300px,380px)_minmax(0,1fr)]">
       <div className="rounded-2xl border border-zinc-800 bg-zinc-900/60 p-6">
         <h2 className="text-lg font-semibold text-zinc-100">Playground</h2>
         <p className="mb-5 text-sm text-zinc-500">

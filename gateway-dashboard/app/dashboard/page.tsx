@@ -242,7 +242,12 @@ export default function DashboardPage() {
             <KeyManager />
             <section className="rounded-2xl border border-zinc-800 bg-zinc-900/60 p-6">
               <h2 className="mb-3 text-lg font-semibold text-zinc-100">Calling the API</h2>
-              <pre className="overflow-auto rounded-xl border border-zinc-800 bg-zinc-950/70 p-4 font-mono text-xs leading-relaxed text-zinc-300">
+              <pre
+                role="region"
+                aria-label="Scrollable API export example"
+                tabIndex={0}
+                className="w-full min-w-0 max-w-full overscroll-contain overflow-auto rounded-xl border border-zinc-800 bg-zinc-950/70 p-4 font-mono text-xs leading-relaxed text-zinc-300"
+              >
 {`curl -X POST ${typeof window === "undefined" ? "" : window.location.origin}/api/v1/extract \\
   -H "Authorization: Bearer YOUR_API_KEY" \\
   -H "Content-Type: application/json" \\

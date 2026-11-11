@@ -47,7 +47,10 @@ export default function JsonViewer({ value, emptyLabel, maxHeight = 520 }: Props
 
   return (
     <div
-      className="overflow-auto rounded-xl border border-zinc-800 bg-zinc-950/70 p-4 font-mono text-[12.5px] leading-relaxed"
+      role="region"
+      aria-label="Scrollable JSON response"
+      tabIndex={0}
+      className="w-full min-w-0 max-w-full overscroll-contain overflow-auto rounded-xl border border-zinc-800 bg-zinc-950/70 p-4 font-mono text-[12.5px] leading-relaxed"
       style={{ maxHeight }}
     >
       <pre className="min-w-full">
