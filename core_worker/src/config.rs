@@ -141,7 +141,7 @@ impl Config {
             min_body_bytes_for_static: env_parse("CORE_MIN_BODY_BYTES", "512")?,
 
             // Recursive crawler
-            crawl_depth: env_parse("CORE_CRAWL_DEPTH", "0")?,
+            crawl_depth: env_parse("CORE_CRAWL_DEPTH", "2")?,
             crawl_max_pages: env_parse("CORE_CRAWL_MAX_PAGES", "50")?,
             crawl_max_links_per_page: env_parse("CORE_CRAWL_MAX_LINKS_PER_PAGE", "25")?,
             crawl_any_host: env_bool("CORE_CRAWL_ANY_HOST", true),
