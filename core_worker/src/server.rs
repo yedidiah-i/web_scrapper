@@ -93,6 +93,10 @@ async fn submit_job(
 
     let job_id = uuid::Uuid::new_v4().to_string();
     let target = payload.target;
+    let crawl_depth = payload.crawl_depth.min(state.config.crawl_depth);
+    let crawl_max_pages = payload.crawl_max_pages.min(state.config.crawl_max_pages);
+    let label = payload.label.clone();
+
     let (accepted, rejected) = state
         .engine
         .submit(
@@ -100,6 +104,7 @@ async fn submit_job(
             payload.urls,
             target,
             payload.selectors,
+            crawl_depth,
         )
         .await;
 
@@ -110,6 +115,9 @@ async fn submit_job(
         rejected_urls: rejected,
         target: target.as_str().to_string(),
         queued_at_ms: crate::stats::now_ms(),
+        crawl_depth,
+        crawl_max_pages,
+        label,
     };
 
     (StatusCode::ACCEPTED, Json(body)).into_response()
@@ -135,6 +143,8 @@ async fn job_status(
                 failed: job.failed,
                 created_at_ms: job.created_at_ms,
                 updated_at_ms: job.updated_at_ms,
+                crawl_depth: job.crawl_depth,
+                max_pages: job.max_pages,
             };
             Json(body).into_response()
         }

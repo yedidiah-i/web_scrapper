@@ -3,7 +3,7 @@ import { NextRequest } from "next/server";
 import { config } from "@/lib/config";
 import { findUserByApiKey, touchApiKey } from "@/lib/auth";
 import { EngineError } from "@/lib/engine";
-import { performExtraction } from "@/lib/extract";
+import { performExtraction, fetchResultFormat, negotiateResultFormat } from "@/lib/extract";
 import {
   acquireSlot,
   creditsRemaining,
@@ -27,6 +27,9 @@ type ExtractRequestBody = {
   url?: unknown;
   target?: unknown;
   selectors?: unknown;
+  crawl_depth?: unknown;
+  crawl_max_pages?: unknown;
+  label?: unknown;
 };
 
 function jsonError(status: number, code: string, message: string, extra?: Record<string, unknown>) {
@@ -141,14 +144,61 @@ export async function POST(request: NextRequest) {
           .slice(0, 10)
       : [];
 
+    const crawlDepth =
+      typeof body.crawl_depth === "number" && !isNaN(body.crawl_depth)
+        ? Math.max(0, Math.min(5, Math.floor(body.crawl_depth)))
+        : 0;
+
+    const crawlMaxPages =
+      typeof body.crawl_max_pages === "number" && !isNaN(body.crawl_max_pages)
+        ? Math.max(1, Math.min(200, Math.floor(body.crawl_max_pages)))
+        : 50;
+
+    const label =
+      typeof body.label === "string" ? body.label.trim().slice(0, 100) : undefined;
+
     // --- Forward to the Rust core queue and collect the payload ----------- //
-    const outcome = await performExtraction(user, { urls, target, selectors }, apiKey.id);
+    const outcome = await performExtraction(
+      user,
+      {
+        urls,
+        target,
+        selectors,
+        crawl_depth: crawlDepth,
+        crawl_max_pages: crawlMaxPages,
+        label,
+      },
+      apiKey.id,
+    );
+
+    // --- Optional negotiated output format -------------------------------- //
+    // `?format=csv` (or an `Accept: text/csv` header) returns the results
+    // as a table instead of the JSON envelope.
+    const { searchParams } = new URL(request.url);
+    const requestedFormat = negotiateResultFormat(
+      request.headers.get("accept"),
+      searchParams.get("format"),
+    );
+
+    if (requestedFormat && requestedFormat !== "json") {
+      const { body, contentType } = await fetchResultFormat(outcome.jobId, requestedFormat);
+      return new Response(body, {
+        status: outcome.succeeded > 0 ? 200 : 502,
+        headers: {
+          "Content-Type": contentType,
+          "Content-Disposition": `attachment; filename="${outcome.jobId}.${requestedFormat}"`,
+          "Cache-Control": "no-store",
+          "X-Credits-Remaining": String(Math.max(0, remaining - outcome.creditsCharged)),
+        },
+      });
+    }
 
     return Response.json(
       {
         job_id: outcome.jobId,
         status: outcome.succeeded > 0 ? "success" : "error",
         target: outcome.target,
+        crawl_depth: outcome.crawl_depth,
         summary: {
           requested: urls.length,
           accepted: outcome.accepted,
@@ -159,6 +209,7 @@ export async function POST(request: NextRequest) {
         },
         credits_charged: outcome.creditsCharged,
         credits_remaining: Math.max(0, remaining - outcome.creditsCharged),
+        export_urls: outcome.exportUrls,
         results: outcome.results,
       },
       {

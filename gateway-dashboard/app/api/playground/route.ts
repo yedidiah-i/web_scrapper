@@ -18,7 +18,15 @@ export async function POST(request: Request) {
   const user = requireUser(request);
   if (!user) return unauthorized();
 
-  let body: { urls?: unknown; url?: unknown; target?: unknown; selectors?: unknown };
+  let body: {
+    urls?: unknown;
+    url?: unknown;
+    target?: unknown;
+    selectors?: unknown;
+    crawl_depth?: unknown;
+    crawl_max_pages?: unknown;
+    label?: unknown;
+  };
   try {
     body = (await request.json()) as typeof body;
   } catch {
@@ -72,13 +80,34 @@ export async function POST(request: Request) {
         .slice(0, 10)
     : [];
 
+  const crawlDepth =
+    typeof body.crawl_depth === "number" && !isNaN(body.crawl_depth)
+      ? Math.max(0, Math.min(5, Math.floor(body.crawl_depth)))
+      : 0;
+
+  const crawlMaxPages =
+    typeof body.crawl_max_pages === "number" && !isNaN(body.crawl_max_pages)
+      ? Math.max(1, Math.min(200, Math.floor(body.crawl_max_pages)))
+      : 50;
+
+  const label =
+    typeof body.label === "string" ? body.label.trim().slice(0, 100) : undefined;
+
   try {
-    const outcome = await performExtraction(user, { urls, target, selectors });
+    const outcome = await performExtraction(user, {
+      urls,
+      target,
+      selectors,
+      crawl_depth: crawlDepth,
+      crawl_max_pages: crawlMaxPages,
+      label,
+    });
 
     return Response.json({
       job_id: outcome.jobId,
       status: outcome.succeeded > 0 ? "success" : "error",
       target: outcome.target,
+      crawl_depth: outcome.crawl_depth,
       summary: {
         requested: urls.length,
         accepted: outcome.accepted,
@@ -89,6 +118,7 @@ export async function POST(request: Request) {
       },
       credits_charged: outcome.creditsCharged,
       latency_ms: outcome.latencyMs,
+      export_urls: outcome.exportUrls,
       results: outcome.results,
     });
   } catch (error) {
