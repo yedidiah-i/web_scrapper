@@ -1,5 +1,5 @@
 "use client";
-
+import Link from 'next/link';
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
@@ -8,6 +8,7 @@ import KeyManager from "../components/KeyManager";
 import Playground from "../components/Playground";
 import UsageChart from "../components/UsageChart";
 import HistoryViewer from "../components/HistoryViewer";
+import { DashboardStats, DashboardUser } from '../components/dashboard-types';
 
 type Session = { user: DashboardUser };
 
@@ -48,6 +49,7 @@ export default function DashboardPage() {
   const [session, setSession] = useState<Session | null>(null);
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
+  const [tab, setTab] = useState<Tab>("playground");
 
   const loadStats = useCallback(async () => {
     try {
