@@ -25,9 +25,24 @@ function migrate(database: DatabaseSync): void {
     database.exec("ALTER TABLE users ADD COLUMN last_login_at INTEGER");
   }
 
+  if (!columns.has("supabase_user_id")) {
+    database.exec("ALTER TABLE users ADD COLUMN supabase_user_id TEXT");
+  }
+
+  database.exec(
+    "CREATE UNIQUE INDEX IF NOT EXISTS idx_users_supabase_id ON users(supabase_user_id)",
+  );
+
   database.exec(
     "CREATE INDEX IF NOT EXISTS idx_sessions_user ON sessions(user_id)",
   );
+  database.exec(`
+    CREATE TABLE IF NOT EXISTS auth_login_attempts (
+      email_hash TEXT PRIMARY KEY,
+      attempts INTEGER NOT NULL,
+      window_started_at INTEGER NOT NULL
+    )
+  `);
 }
 
 function openDatabase(): DatabaseSync {
@@ -53,6 +68,7 @@ export type UserRole = "user" | "admin";
 export type UserRow = {
   id: number;
   email: string;
+  supabase_user_id: string | null;
   name: string;
   password_hash: string;
   tier: string;

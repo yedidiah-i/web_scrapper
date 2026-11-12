@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 import JsonViewer from "../components/JsonViewer";
@@ -10,21 +9,7 @@ import Playground from "../components/Playground";
 import UsageChart from "../components/UsageChart";
 import HistoryViewer from "../components/HistoryViewer";
 
-type Session = {
-  user: {
-    id: number;
-    email: string;
-    name: string;
-    tier: string;
-    tier_label: string;
-    role: string;
-    monthly_credits: number;
-    credits_used: number;
-    credits_remaining: number;
-    rate_limit_per_minute: number;
-    concurrent_limit: number;
-  };
-};
+type Session = { user: DashboardUser };
 
 type Stats = {
   usage: {
@@ -61,15 +46,14 @@ function formatBytes(bytes: number): string {
 export default function DashboardPage() {
   const router = useRouter();
   const [session, setSession] = useState<Session | null>(null);
-  const [stats, setStats] = useState<Stats | null>(null);
-  const [tab, setTab] = useState<Tab>("playground");
+  const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
 
   const loadStats = useCallback(async () => {
     try {
       const response = await fetch("/api/stats", { cache: "no-store" });
       if (!response.ok) return;
-      setStats((await response.json()) as Stats);
+      setStats((await response.json()) as DashboardStats);
     } catch {
       /* keep the last known snapshot */
     }

@@ -4,6 +4,8 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
+import ScrappyBrand from "@/app/components/ScrappyBrand";
+
 type Profile = {
   user: {
     id: number;
@@ -195,14 +197,8 @@ export default function AccountPage() {
     <div className="min-h-screen bg-zinc-950 text-zinc-100">
       <header className="border-b border-zinc-800 bg-zinc-950/90 backdrop-blur">
         <div className="mx-auto flex max-w-4xl flex-wrap items-center gap-4 px-6 py-4">
-          <Link href="/dashboard" className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-500 font-bold text-zinc-950">
-              S
-            </div>
-            <div>
-              <p className="text-sm font-semibold leading-tight">Scrapeworks</p>
-              <p className="text-[11px] leading-tight text-zinc-500">Account settings</p>
-            </div>
+          <Link href="/dashboard" className="rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500">
+            <ScrappyBrand subtitle="Account settings" size={36} />
           </Link>
           <Link
             href="/dashboard"
