@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
@@ -13,9 +13,20 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Scrapeworks · Extraction Control Panel",
+  title: "Scrappy · Web extraction workspace",
   description:
-    "High-concurrency scraping API — dashboard for API keys, playground and usage analytics.",
+    "Scrappy helps teams extract web data with a fast API, usage analytics, and a focused workspace.",
+  icons: {
+    icon: [{ url: "/scrappy-mark.svg", type: "image/svg+xml" }],
+    shortcut: "/scrappy-mark.svg",
+    apple: "/scrappy-mark.svg",
+  },
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  themeColor: "#f7f8f7",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

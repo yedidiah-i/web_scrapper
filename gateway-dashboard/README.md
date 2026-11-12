@@ -1,6 +1,6 @@
-# Scrapeworks Gateway
+# Scrappy Gateway
 
-Control panel and metered API for the Scrapeworks extraction pipeline.
+A focused workspace and metered API for Scrappy web extraction.
 
 The app is a Next.js 16 (App Router) front end over a SQLite ledger. It talks
 to two backing services:
@@ -38,28 +38,15 @@ npm run dev       # http://localhost:3000
 
 ### The admin account
 
-`npm run seed` provisions **yedidiah@scrapeworks.com** as an administrator on
-the Enterprise plan and issues an API key for it.
+`npm run seed` provisions local administrator metadata for
+**futureksmeyedidiah@gmail.com** on the Enterprise plan and issues an API key.
+It does not create a Supabase Auth user or set a password. Sign up in Scrappy
+with that verified email and choose a private, unique password; the verified
+identity is linked to the administrator record automatically.
 
-The password defaults to the email address, matching the requested credential:
-
-```
-login : yedidiah@scrapeworks.com
-password: yedidiah@scrapeworks.com
-```
-
-Override it before seeding anything you care about:
-
-```bash
-ADMIN_PASSWORD='something-stronger' npm run seed
-```
-
-The script prints the login and the API key once. Passwords are stored as
-scrypt hashes and API keys as SHA-256 hashes, so neither can be read back
-later — only reset.
-
-Re-running the seed is safe. An existing admin keeps its current password and
-role, and a fresh API key is issued each time.
+The seed script uses a random local-only password hash, never prints a login
+password, and only shows the newly issued API key once. Re-running the seed
+keeps existing account credentials and issues a fresh API key.
 
 To also seed a non-admin demo account:
 
@@ -71,7 +58,7 @@ SEED_DEMO=1 npm run seed
 
 ## Environment
 
-Every value has a working default, so the app runs with no configuration.
+Supabase Auth is supplied by the connected project integration. The remaining service settings have development defaults.
 
 | Variable                | Default                                   | Purpose                          |
 | ----------------------- | ----------------------------------------- | -------------------------------- |
@@ -83,13 +70,15 @@ Every value has a working default, so the app runs with no configuration.
 | `MAX_URLS_PER_REQUEST`  | `100`                                     | URL cap per extraction request   |
 | `JOB_TIMEOUT_MS`        | `60000`                                   | Engine + processor wait limit    |
 | `CREDITS_PER_URL`       | `1`                                       | Credits charged per good URL     |
-| `ADMIN_EMAIL`           | `yedidiah@scrapeworks.com`                | Seed: admin email                |
-| `ADMIN_PASSWORD`        | *(the admin email)*                       | Seed: admin password             |
-| `ADMIN_NAME`            | `Yedidiah`                                | Seed: admin display name         |
+| `ADMIN_EMAIL`           | `futureksmeyedidiah@gmail.com`            | Seed: administrator email        |
+| `ADMIN_NAME`            | `Scrappy Admin`                           | Seed: administrator display name |
+| `NEXT_PUBLIC_SUPABASE_URL` | provided by Supabase integration         | Auth endpoint                     |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | provided by Supabase integration    | Public auth key                   |
+| `SUPABASE_SERVICE_ROLE_KEY` | provided by Supabase integration        | Server-only admin password reset |
 | `ADMIN_TIER`            | `enterprise`                              | Seed: admin plan                 |
 | `SEED_DEMO`             | *(off)*                                   | Seed: also create a demo account |
 
-Set `SESSION_SECRET` and `ADMIN_PASSWORD` to real values before deploying.
+Supabase Auth supplies sign-in, verified email confirmation, and credential storage. The connected integration provides `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, and `SUPABASE_SERVICE_ROLE_KEY`; keep the service-role key server-only. In production, set a unique `SESSION_SECRET` or the app derives its session-signing secret from the service-role key.
 
 ---
 

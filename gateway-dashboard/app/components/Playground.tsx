@@ -19,8 +19,8 @@ const TARGETS = [
  *
  * Control panel on the left, live JSON payload on the right.
  */
-export default function Playground() {
-  const [urls, setUrls] = useState("https://example.com");
+export default function Playground({ initialUrls = "https://example.com" }: { initialUrls?: string }) {
+  const [urls, setUrls] = useState(initialUrls);
   const [target, setTarget] = useState("auto");
   const [selectors, setSelectors] = useState("");
   const [crawlDepth, setCrawlDepth] = useState(0);

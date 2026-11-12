@@ -5,16 +5,15 @@
  *
  * Environment:
  *   GATEWAY_DB_PATH   where the SQLite ledger lives
- *   ADMIN_EMAIL       admin account email   (default yedidiah@scrapeworks.com)
- *   ADMIN_PASSWORD    admin account password (default: same as the email)
- *   ADMIN_NAME        admin display name     (default Yedidiah)
+ *   ADMIN_EMAIL       administrator email (default futureksmeyedidiah@gmail.com)
+ *   ADMIN_NAME        administrator display name
  *   ADMIN_TIER        hobby|professional|enterprise
  *   SEED_DEMO         also seed a demo account when "1" or "true"
- *   DEMO_EMAIL        demo account email     (default demo@scrapeworks.local)
- *   DEMO_PASSWORD     demo account password  (default demo-password-1234)
+ *   DEMO_EMAIL        demo account email
  *
- * Running the script twice is safe: an existing admin keeps its password and
- * a fresh API key is issued each time.
+ * This seeds local account metadata only. Supabase Auth creates the credential
+ * after the administrator signs up and confirms this email in Scrappy.
+ * Existing credentials are never printed; new local-only passwords are random.
  */
 import { createHash, randomBytes, scryptSync } from "node:crypto";
 import { mkdirSync, readFileSync } from "node:fs";
@@ -24,14 +23,14 @@ import { DatabaseSync } from "node:sqlite";
 const dbPath =
   process.env.GATEWAY_DB_PATH ?? path.join(process.cwd(), "data", "gateway.db");
 
-const adminEmail = (process.env.ADMIN_EMAIL ?? "yedidiah@scrapeworks.com").toLowerCase();
-const adminPassword = process.env.ADMIN_PASSWORD ?? adminEmail;
-const adminName = process.env.ADMIN_NAME ?? "Yedidiah";
+const adminEmail = (process.env.ADMIN_EMAIL ?? "futureksmeyedidiah@gmail.com").trim().toLowerCase();
+const adminPassword = randomBytes(48).toString("base64url");
+const adminName = process.env.ADMIN_NAME ?? "Scrappy Admin";
 const adminTier = process.env.ADMIN_TIER ?? "enterprise";
 
 const demoEnabled = /^(1|true|yes)$/i.test(process.env.SEED_DEMO ?? "");
-const demoEmail = (process.env.DEMO_EMAIL ?? "demo@scrapeworks.local").toLowerCase();
-const demoPassword = process.env.DEMO_PASSWORD ?? "demo-password-1234";
+const demoEmail = (process.env.DEMO_EMAIL ?? "demo@scrappy.local").trim().toLowerCase();
+const demoPassword = randomBytes(48).toString("base64url");
 
 const TIERS = {
   hobby: { credits: 5_000, rate: 30, concurrent: 2 },
@@ -70,6 +69,11 @@ if (!columns.has("role")) {
 if (!columns.has("last_login_at")) {
   db.exec("ALTER TABLE users ADD COLUMN last_login_at INTEGER");
 }
+
+if (!columns.has("supabase_user_id")) {
+  db.exec("ALTER TABLE users ADD COLUMN supabase_user_id TEXT");
+}
+db.exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_users_supabase_id ON users(supabase_user_id)");
 
 /**
  * Provision an account.
@@ -132,7 +136,8 @@ const admin = provision({
 });
 
 console.log("");
-console.log("  dashboard login :", adminEmail, "/", adminPassword);
+console.log("  admin email     :", adminEmail);
+console.log("  sign-in         : create/confirm this account in Scrappy via Supabase Auth");
 console.log("  api key         :", admin.plaintext);
 console.log("  ledger          :", dbPath);
 console.log("");
@@ -147,14 +152,8 @@ if (demoEnabled) {
     role: "user",
   });
 
-  console.log("  demo login      :", demoEmail, "/", demoPassword);
+  console.log("  demo email      :", demoEmail);
   console.log("  demo api key    :", demo.plaintext);
-  console.log("");
-}
-
-if (adminPassword === adminEmail) {
-  console.log("  WARNING: the admin password equals the email address.");
-  console.log("           Set ADMIN_PASSWORD to something stronger before deploying.");
   console.log("");
 }
 

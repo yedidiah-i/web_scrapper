@@ -12,6 +12,7 @@ import {
   setUserTier,
 } from "@/lib/users";
 import { isTier, type Tier } from "@/lib/pricing";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 type RouteContext = { params: Promise<{ id: string }> };
 
@@ -126,9 +127,28 @@ export async function PATCH(request: Request, context: RouteContext) {
       );
     }
 
-    setUserPassword(userId, body.password);
+    if (!target.supabase_user_id) {
+      return Response.json(
+        { error: { status: 409, code: "supabase_account_unlinked", message: "This user must finish Supabase sign-in before their password can be reset here." } },
+        { status: 409 },
+      );
+    }
 
-    // A reset invalidates every session of that account.
+    try {
+      const supabaseAdmin = createAdminClient();
+      const { error } = await supabaseAdmin.auth.admin.updateUserById(
+        target.supabase_user_id,
+        { password: body.password },
+      );
+      if (error) throw error;
+    } catch {
+      return Response.json(
+        { error: { status: 500, code: "password_reset_failed", message: "Could not reset this user’s password." } },
+        { status: 500 },
+      );
+    }
+
+    setUserPassword(userId, body.password);
     db.prepare("DELETE FROM sessions WHERE user_id = ?").run(userId);
   }
 

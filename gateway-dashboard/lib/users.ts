@@ -55,6 +55,13 @@ export function findUserByEmail(email: string): UserRow | undefined {
     .get(normalizeEmail(email)) as UserRow | undefined;
 }
 
+/** Look up a local account linked to a Supabase Auth user. */
+export function findUserBySupabaseId(supabaseUserId: string): UserRow | undefined {
+  return db
+    .prepare("SELECT * FROM users WHERE supabase_user_id = ?")
+    .get(supabaseUserId) as UserRow | undefined;
+}
+
 /** Look up a user by primary key. */
 export function findUserById(id: number): UserRow | undefined {
   return db.prepare("SELECT * FROM users WHERE id = ?").get(id) as UserRow | undefined;

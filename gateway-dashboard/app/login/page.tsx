@@ -4,6 +4,8 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
+import ScrappyBrand from "@/app/components/ScrappyBrand";
+
 /** Dashboard sign-in page. */
 export default function LoginPage() {
   const router = useRouter();
@@ -30,7 +32,12 @@ export default function LoginPage() {
         return;
       }
 
-      router.replace("/dashboard");
+      const next = new URLSearchParams(window.location.search).get("next");
+      const destination =
+        next?.startsWith("/") && !next.startsWith("//") && !next.includes("\\\\")
+          ? next
+          : "/dashboard";
+      router.replace(destination);
       router.refresh();
     } catch {
       setError("Could not reach the gateway.");
@@ -42,24 +49,20 @@ export default function LoginPage() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-zinc-950 px-6">
       <div className="w-full max-w-sm">
-        <div className="mb-8 flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-500 font-bold text-zinc-950">
-            S
-          </div>
-          <div>
-            <p className="font-semibold text-zinc-100">Scrapeworks</p>
-            <p className="text-xs text-zinc-500">Extraction control panel</p>
-          </div>
-        </div>
+        <Link href="/" className="mb-8 inline-flex rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500">
+          <ScrappyBrand subtitle="Extraction workspace" size={42} />
+        </Link>
 
         <h1 className="mb-1 text-2xl font-semibold text-zinc-100">Welcome back</h1>
         <p className="mb-6 text-sm text-zinc-500">Sign in to manage keys and usage.</p>
 
         <form onSubmit={submit} className="rounded-2xl border border-zinc-800 bg-zinc-900/60 p-6">
-          <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-zinc-400">
+          <label htmlFor="login-email" className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-zinc-400">
             Email
           </label>
           <input
+            id="login-email"
+            autoComplete="email"
             type="email"
             required
             value={email}
@@ -68,10 +71,12 @@ export default function LoginPage() {
             className="w-full rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-2.5 text-sm text-zinc-200 outline-none placeholder:text-zinc-600 focus:border-emerald-500"
           />
 
-          <label className="mb-1.5 mt-4 block text-xs font-semibold uppercase tracking-wide text-zinc-400">
+          <label htmlFor="login-password" className="mb-1.5 mt-4 block text-xs font-semibold uppercase tracking-wide text-zinc-400">
             Password
           </label>
           <input
+            id="login-password"
+            autoComplete="current-password"
             type="password"
             required
             value={password}

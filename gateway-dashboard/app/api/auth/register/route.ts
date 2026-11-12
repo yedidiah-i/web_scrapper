@@ -1,22 +1,9 @@
 import { NextRequest } from "next/server";
 
-import { buildSessionCookie, createSession, generateApiKey } from "@/lib/auth";
-import { db } from "@/lib/db";
-import { TIERS, isTier } from "@/lib/pricing";
-import {
-  UserExistsError,
-  checkPasswordStrength,
-  createUser,
-  isValidEmail,
-  touchLastLogin,
-} from "@/lib/users";
+import { checkPasswordStrength, isValidEmail } from "@/lib/users";
+import { createLocalSession, ensureLocalAccount } from "@/lib/supabase/local-account";
+import { createClient } from "@/lib/supabase/server";
 
-/**
- * Create an account.
- *
- * New accounts land on the Hobby plan. A successful signup starts a session
- * immediately so the user lands in the dashboard without signing in again.
- */
 export async function POST(request: NextRequest) {
   let body: { name?: unknown; email?: unknown; password?: unknown };
   try {
@@ -29,40 +16,24 @@ export async function POST(request: NextRequest) {
   }
 
   const name = typeof body.name === "string" ? body.name.trim() : "";
-  const email = typeof body.email === "string" ? body.email.trim() : "";
+  const email = typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
   const password = typeof body.password === "string" ? body.password : "";
 
-  if (!name) {
+  if (!name || name.length > 120) {
     return Response.json(
-      { error: { status: 400, code: "missing_name", message: "Your name is required." } },
+      { error: { status: 400, code: "invalid_name", message: "Enter a name of 1–120 characters." } },
       { status: 400 },
     );
   }
-
-  if (name.length > 120) {
-    return Response.json(
-      { error: { status: 400, code: "name_too_long", message: "Name must be 120 characters or fewer." } },
-      { status: 400 },
-    );
-  }
-
-  if (!email) {
-    return Response.json(
-      { error: { status: 400, code: "missing_email", message: "Email is required." } },
-      { status: 400 },
-    );
-  }
-
   if (!isValidEmail(email)) {
     return Response.json(
       { error: { status: 400, code: "invalid_email", message: "Enter a valid email address." } },
       { status: 400 },
     );
   }
-
-  if (!password) {
+  if (password.toLowerCase() === email) {
     return Response.json(
-      { error: { status: 400, code: "missing_password", message: "Password is required." } },
+      { error: { status: 400, code: "password_matches_email", message: "Your password must be different from your email address." } },
       { status: 400 },
     );
   }
@@ -75,51 +46,59 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  let user;
-  try {
-    user = createUser({ name, email, password });
-  } catch (error) {
-    if (error instanceof UserExistsError) {
+  const supabase = await createClient();
+  const redirectTo =
+    process.env.NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL ??
+    `${request.nextUrl.origin}/auth/callback`;
+  const { data, error } = await supabase.auth.signUp({
+    email,
+    password,
+    options: { emailRedirectTo: redirectTo, data: { name } },
+  });
+
+  if (error) {
+    if (error.status === 429 || error.code === "over_email_send_rate_limit") {
       return Response.json(
-        {
-          error: {
-            status: 409,
-            code: "email_taken",
-            message: "An account already exists for that email. Sign in instead.",
-          },
-        },
-        { status: 409 },
+        { error: { status: 429, code: "rate_limited", message: "Too many requests. Try again later." } },
+        { status: 429 },
       );
     }
-    throw error;
+    if (error.code === "email_not_authorized") {
+      return Response.json(
+        { error: { status: 403, code: "email_not_authorized", message: "This project can only send confirmation emails to authorized addresses. Contact the project owner to configure email delivery." } },
+        { status: 403 },
+      );
+    }
+    if (error.code === "weak_password") {
+      return Response.json(
+        { error: { status: 400, code: "weak_password", message: "Choose a stronger password." } },
+        { status: 400 },
+      );
+    }
+    return Response.json(
+      { error: { status: 500, code: "signup_unavailable", message: "Account creation is temporarily unavailable." } },
+      { status: 500 },
+    );
   }
 
-  // Give every new account a first API key so the dashboard is immediately
-  // useful. The plaintext is returned once and only its hash is stored.
-  const key = generateApiKey();
-  db.prepare(
-    `INSERT INTO api_keys (user_id, label, key_prefix, key_hash, created_at)
-     VALUES (?, ?, ?, ?, ?)`,
-  ).run(user.id, "default", key.prefix, key.hash, Date.now());
-
-  touchLastLogin(user.id);
-
-  const { token, expiresAt } = createSession(user.id);
-  const tier = isTier(user.tier) ? TIERS[user.tier] : null;
+  if (data.session && data.user) {
+    try {
+      const localUser = ensureLocalAccount(data.user);
+      const session = createLocalSession(localUser);
+      return Response.json({ user: session.user, confirmation_required: false }, {
+        status: 201,
+        headers: { "Set-Cookie": session.cookie },
+      });
+    } catch {
+      return Response.json(
+        { error: { status: 500, code: "account_unavailable", message: "Your account could not be prepared." } },
+        { status: 500 },
+      );
+    }
+  }
 
   return Response.json(
-    {
-      user: {
-        id: user.id,
-        email: user.email,
-        name: user.name,
-        tier: user.tier,
-        tier_label: tier?.label ?? user.tier,
-        role: user.role,
-        monthly_credits: user.monthly_credits,
-      },
-      api_key: key.plaintext,
-    },
-    { status: 201, headers: { "Set-Cookie": buildSessionCookie(token, expiresAt) } },
+    { confirmation_required: true, message: "If the address can be registered, a confirmation link is on its way." },
+    { status: 201 },
   );
 }
