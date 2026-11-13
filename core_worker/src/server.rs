@@ -14,7 +14,7 @@ use crate::{
     config::Config,
     fetcher::Engine,
     ipc::IpcSink,
-    models::{JobAccepted, JobRequest, JobStatus},
+    models::{JobAccepted, JobRequest, JobStart, JobStatus},
     stats::Stats,
 };
 
@@ -48,19 +48,39 @@ pub fn router(state: AppState) -> Router {
 
 async fn health(State(state): State<AppState>) -> Json<serde_json::Value> {
     let snap = state.stats.snapshot();
+    let config = state.config.as_ref();
     Json(json!({
         "status": "ok",
         "service": "core_worker",
         "version": env!("CARGO_PKG_VERSION"),
         "uptime_secs": snap.uptime_secs,
-        "workers": state.config.worker_count,
-        "queue_capacity": state.config.queue_capacity,
+        "workers": config.worker_count,
+        "queue_capacity": config.queue_capacity,
         "queue_depth": state.engine.queue_depth(),
-        "request_timeout_secs": state.config.request_timeout.as_secs(),
-        "max_retries": state.config.max_retries,
-        "python_ingest": state.config.python_ingest.to_string(),
-        "python_results": state.config.python_results.to_string(),
+        "request_timeout_secs": config.request_timeout.as_secs(),
+        "max_retries": config.max_retries,
+        "python_ingest": config.python_ingest.to_string(),
+        "python_results": config.python_results.to_string(),
         "python_ingest_connected": state.ipc.is_connected(),
+        // The effective configuration, so an operator (and the dashboard) can
+        // see what the running worker actually does without guessing.
+        "config": {
+            "bind_addr": config.bind_addr.to_string(),
+            "rotate_user_agent": config.rotate_user_agent,
+            "browser_fallback": config.browser_fallback,
+            "render_endpoint": config.render_endpoint,
+            "escalate_on_challenge": config.escalate_on_challenge,
+            "persist_cookies": config.persist_cookies,
+            "tls_impersonate": config.tls_impersonate,
+            "tls_impersonate_available": crate::fingerprint::available(),
+            "crawl_depth": config.crawl_depth,
+            "crawl_max_pages": config.crawl_max_pages,
+            "crawl_max_links_per_page": config.crawl_max_links_per_page,
+            "crawl_any_host": config.crawl_any_host,
+            "max_urls_per_job": config.max_urls_per_job,
+            "max_html_bytes": config.max_html_bytes,
+            "proxy_count": crate::proxy::POOL.len(),
+        },
     }))
 }
 
@@ -97,7 +117,7 @@ async fn submit_job(
     let crawl_max_pages = payload.crawl_max_pages.min(state.config.crawl_max_pages);
     let label = payload.label.clone();
 
-    let (accepted, rejected) = state
+    let (accepted_urls, rejected) = state
         .engine
         .submit(
             &job_id,
@@ -106,6 +126,23 @@ async fn submit_job(
             payload.selectors,
             crawl_depth,
         )
+        .await;
+
+    let accepted = accepted_urls.len();
+
+    // Tell the Python layer about the job before the first page arrives, so
+    // the crawl is registered in the history with its label and crawl depth
+    // instead of being reconstructed from the first results.
+    state
+        .ipc
+        .send_job_start(JobStart::new(
+            &job_id,
+            label.clone(),
+            &target,
+            crawl_depth,
+            crawl_max_pages,
+            accepted_urls,
+        ))
         .await;
 
     let body = JobAccepted {

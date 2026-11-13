@@ -13,7 +13,22 @@ use tokio::{
     time::{sleep, Instant},
 };
 
-use crate::{config::Config, models::RawPacket};
+use serde::Serialize;
+
+use crate::{config::Config, models::{JobStart, RawPacket}};
+
+/// Everything the worker streams to the Python ingestion socket.
+///
+/// Both variants serialise to a flat JSON object with a `kind` discriminator,
+/// so the Python side can tell a job announcement from a fetched page.
+#[derive(Debug, Clone, Serialize)]
+#[serde(untagged)]
+pub enum Outbound {
+    /// Announcement of a job that was just accepted.
+    JobStart(JobStart),
+    /// A fetched page.
+    Page(RawPacket),
+}
 
 /// Outbound sink that streams raw HTML packets to the Python ingestion socket.
 ///
@@ -21,13 +36,13 @@ use crate::{config::Config, models::RawPacket};
 /// socket is transparently re-established, and the packet that failed to write
 /// is retried instead of being dropped.
 pub struct IpcSink {
-    tx: mpsc::Sender<RawPacket>,
+    tx: mpsc::Sender<Outbound>,
     connected: Arc<AtomicBool>,
 }
 
 impl IpcSink {
     pub fn spawn(cfg: &Config) -> std::sync::Arc<Self> {
-        let (tx, mut rx) = mpsc::channel::<RawPacket>(4096);
+        let (tx, mut rx) = mpsc::channel::<Outbound>(4096);
         let addr = cfg.python_ingest;
         let connected = Arc::new(AtomicBool::new(false));
         let connected_flag = connected.clone();
@@ -108,7 +123,17 @@ impl IpcSink {
     /// Queue a packet for delivery. Never blocks the worker on a slow socket
     /// beyond the bounded channel capacity.
     pub async fn send(&self, packet: RawPacket) {
-        if let Err(err) = self.tx.send(packet).await {
+        self.push(Outbound::Page(packet)).await;
+    }
+
+    /// Announce a freshly accepted job so the Python layer can register the
+    /// crawl in its history with the right label and crawl depth.
+    pub async fn send_job_start(&self, start: JobStart) {
+        self.push(Outbound::JobStart(start)).await;
+    }
+
+    async fn push(&self, outbound: Outbound) {
+        if let Err(err) = self.tx.send(outbound).await {
             tracing::error!(%err, "ingestion channel closed, packet lost");
         }
     }

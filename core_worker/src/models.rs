@@ -79,6 +79,53 @@ pub struct JobAccepted {
     pub label: Option<String>,
 }
 
+/// Announcement of a newly accepted job, streamed to the Python ingestion
+/// socket before the first page packet of that job.
+///
+/// Without it the processor only learns about a crawl when the first page
+/// arrives, and has to guess the label and the crawl depth of the job.
+#[derive(Debug, Clone, Serialize)]
+pub struct JobStart {
+    /// Packet discriminator.
+    pub kind: &'static str,
+    /// Wire protocol version.
+    pub version: u32,
+    /// Job this announcement belongs to.
+    pub job_id: String,
+    /// Caller supplied label, used to group crawls in the history.
+    pub label: Option<String>,
+    /// Extraction target requested for the job.
+    pub target: String,
+    /// How many link-following hops the job is allowed to perform.
+    pub crawl_depth: usize,
+    /// Hard ceiling on the number of pages in this job tree.
+    pub crawl_max_pages: usize,
+    /// The seed URLs the job started from.
+    pub seed_urls: Vec<String>,
+}
+
+impl JobStart {
+    pub fn new(
+        job_id: &str,
+        label: Option<String>,
+        target: &Target,
+        crawl_depth: usize,
+        crawl_max_pages: usize,
+        seed_urls: Vec<String>,
+    ) -> Self {
+        Self {
+            kind: "job_start",
+            version: 1,
+            job_id: job_id.to_string(),
+            label,
+            target: target.as_str().to_string(),
+            crawl_depth,
+            crawl_max_pages,
+            seed_urls,
+        }
+    }
+}
+
 /// Raw HTML packet streamed to the Python ingestion socket.
 ///
 /// One JSON object per line (NDJSON) so the socket stays streaming friendly.

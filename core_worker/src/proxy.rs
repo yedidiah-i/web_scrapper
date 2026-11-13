@@ -101,6 +101,11 @@ impl ProxyPool {
         }
     }
 
+    /// Number of proxies in the pool.
+    pub fn len(&self) -> usize {
+        self.proxies.len()
+    }
+
     /// Return the next proxy URL in round-robin order, or `None` for direct.
     pub fn next(&self) -> Option<&str> {
         if self.proxies.is_empty() {

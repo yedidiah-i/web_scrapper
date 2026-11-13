@@ -110,6 +110,17 @@ impl JobRegistry {
         );
     }
 
+    /// Give a reserved page slot back when the URL could not be queued.
+    ///
+    /// Without this the job would wait forever for a page that never runs.
+    pub async fn release_slot(&self, job_id: &str) {
+        let mut jobs = self.jobs.write().await;
+        if let Some(job) = jobs.get_mut(job_id) {
+            job.total_urls = job.total_urls.saturating_sub(1);
+            job.updated_at_ms = now_ms();
+        }
+    }
+
     /// Reserve up to `want` additional page slots for a job.
     ///
     /// Returns the number of slots actually granted.  This keeps the crawl
@@ -283,6 +294,10 @@ impl Engine {
                             for new_task in new_tasks {
                                 if let Err(err) = engine_tx.send(new_task).await {
                                     tracing::warn!(%err, "crawl queue full, dropping discovered url");
+                                    // The slot was reserved but the page will
+                                    // never run - give it back so the job can
+                                    // still complete.
+                                    jobs.release_slot(&task.job_id).await;
                                 }
                             }
                         }
@@ -328,8 +343,9 @@ impl Engine {
         }
     }
 
-    /// Accept a job into the queue. Returns the number of accepted and rejected
-    /// URLs; rejected URLs are non-http(s) or over the per-job cap.
+    /// Accept a job into the queue. Returns the accepted seed URLs and the
+    /// number of rejected ones; rejected URLs are non-http(s) or over the
+    /// per-job cap.
     pub async fn submit(
         &self,
         job_id: &str,
@@ -337,7 +353,7 @@ impl Engine {
         target: Target,
         selectors: Vec<String>,
         crawl_depth: usize,
-    ) -> (usize, usize) {
+    ) -> (Vec<String>, usize) {
         let effective_depth = crawl_depth.min(self.config.crawl_depth);
 
         let mut accepted = Vec::new();
@@ -383,10 +399,10 @@ impl Engine {
             self.ipc
                 .send(make_job_complete_packet(job_id, &target))
                 .await;
-            return (0, rejected);
+            return (accepted, rejected);
         }
 
-        for url in accepted {
+        for url in accepted.iter().cloned() {
             let task = Task {
                 job_id: job_id.to_string(),
                 url,
@@ -404,7 +420,7 @@ impl Engine {
             }
         }
 
-        (total, rejected)
+        (accepted, rejected)
     }
 
     /// Number of URLs currently waiting in the queue.
@@ -879,6 +895,16 @@ struct RenderedPage {
     challenge: Option<String>,
 }
 
+/// Timestamp (epoch millis) until which the render service is considered down.
+///
+/// The browser tier is optional infrastructure: when it is unavailable the
+/// crawler keeps the static body instead of waiting for the full render
+/// timeout on every page.
+static RENDER_UNAVAILABLE_UNTIL: AtomicU64 = AtomicU64::new(0);
+
+/// How long the render service is skipped after a failure.
+const RENDER_COOLDOWN_MS: u64 = 60_000;
+
 /// Ask the Python render service to render a page with a real browser.
 ///
 /// The Rust worker deliberately keeps only the fast HTTP path; the browser
@@ -887,6 +913,12 @@ struct RenderedPage {
 /// running the caller simply keeps the static body, so a missing browser
 /// never fails a crawl.
 async fn render_via_service(config: &Config, url: &str, cookies: &Jar) -> Option<RenderedPage> {
+    let now = now_ms();
+    if now < RENDER_UNAVAILABLE_UNTIL.load(Ordering::Relaxed) {
+        tracing::debug!(url = %url, "render service is cooling down, using the static body");
+        return None;
+    }
+
     let client = reqwest::Client::builder()
         .timeout(config.render_timeout)
         .connect_timeout(config.connect_timeout)
@@ -899,12 +931,15 @@ async fn render_via_service(config: &Config, url: &str, cookies: &Jar) -> Option
         "wait_after_ms": 750,
     });
 
-    let response = client
-        .post(&config.render_endpoint)
-        .json(&payload)
-        .send()
-        .await
-        .ok()?;
+    let response = match client.post(&config.render_endpoint).json(&payload).send().await {
+        Ok(response) => response,
+        Err(err) => {
+            tracing::warn!(url = %url, %err, "render service is unreachable");
+            RENDER_UNAVAILABLE_UNTIL
+                .store(now_ms().saturating_add(RENDER_COOLDOWN_MS), Ordering::Relaxed);
+            return None;
+        }
+    };
 
     if !response.status().is_success() {
         tracing::warn!(
@@ -912,6 +947,8 @@ async fn render_via_service(config: &Config, url: &str, cookies: &Jar) -> Option
             status = %response.status(),
             "render service returned an error status"
         );
+        RENDER_UNAVAILABLE_UNTIL
+            .store(now_ms().saturating_add(RENDER_COOLDOWN_MS), Ordering::Relaxed);
         return None;
     }
 
@@ -923,6 +960,10 @@ async fn render_via_service(config: &Config, url: &str, cookies: &Jar) -> Option
         .to_string();
 
     if html.trim().is_empty() {
+        // The service answered but could not render the page - most likely no
+        // browser is installed.  Give it a minute before asking again.
+        RENDER_UNAVAILABLE_UNTIL
+            .store(now_ms().saturating_add(RENDER_COOLDOWN_MS), Ordering::Relaxed);
         return None;
     }
 
